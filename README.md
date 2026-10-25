@@ -1,5 +1,11 @@
 # Web-Based Accounting & Finance System with Web3 Integration
 
+*Decentralized accounting and financial management hub built on Web3 rails; TypeScript.*
+
+![category](https://img.shields.io/badge/category-web3-EF4444?style=flat-square) ![language](https://img.shields.io/badge/language-TypeScript-2563EB?style=flat-square) ![license](https://img.shields.io/badge/license-MIT-16A34A?style=flat-square) ![maintenance](https://img.shields.io/badge/maintenance-dormant-D97706?style=flat-square) ![repo](https://img.shields.io/badge/repo-web3--accounting--hub-111827?style=flat-square)
+
+---
+
 A comprehensive accounting and finance system that combines traditional financial management with Web3 capabilities, designed for local deployment.
 
 ## System Architecture

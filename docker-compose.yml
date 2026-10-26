@@ -1,4 +1,15 @@
-version: '3.8'
+# ---------------------------------------------------------------------------
+# Local development stack.
+#
+# SECURITY NOTES (audit remediation):
+#  * No hardcoded credentials: secrets come from a local .env file and the
+#    compose project FAILS with a clear error if they are missing
+#    (${VAR:?...} interpolation). Copy .env.example -> .env to get started.
+#  * Database and IPFS ports are bound to 127.0.0.1 only, so they are not
+#    reachable from other machines on default Linux/Docker setups.
+#  * No source bind mounts into containers; run `npm run start:dev` /
+#    `npm run dev` on the host during development, or use `docker compose watch`.
+# ---------------------------------------------------------------------------
 
 services:
   frontend:
@@ -6,10 +17,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      # Loopback-only: never expose the dev UI to the network by default.
+      - "127.0.0.1:3000:80"
     environment:
       - NODE_ENV=development
     depends_on:
@@ -20,37 +29,50 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "4000:4000"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+      - "127.0.0.1:4000:4000"
     environment:
       - NODE_ENV=development
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/accounting_finance
-      - JWT_SECRET=your_jwt_secret_key
+      - PORT=4000
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      # Required — startup fails (compose + app validation) if unset/weak.
+      - POSTGRES_USER=${POSTGRES_USER:?set POSTGRES_USER in .env (see .env.example)}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env (see .env.example)}
+      - POSTGRES_DB=${POSTGRES_DB:-accounting_finance}
+      - JWT_SECRET=${JWT_SECRET:?set JWT_SECRET >=32 chars in .env — generate with: openssl rand -hex 32}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000}
       - IPFS_HOST=ipfs
       - IPFS_PORT=5001
     depends_on:
-      - db
-      - ipfs
+      db:
+        condition: service_healthy
+      ipfs:
+        condition: service_started
 
   db:
-    image: postgres:14-alpine
+    image: postgres:16.4-alpine
+    # Loopback binding only; other services reach it via the internal network.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=accounting_finance
+      - POSTGRES_USER=${POSTGRES_USER:?set POSTGRES_USER in .env}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      - POSTGRES_DB=${POSTGRES_DB:-accounting_finance}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app} -d ${POSTGRES_DB:-accounting_finance}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   ipfs:
-    image: ipfs/go-ipfs:latest
+    # go-ipfs is deprecated; Kubo is the maintained distribution, pinned here.
+    image: ipfs/kubo:v0.29.0
     ports:
-      - "4001:4001"
-      - "5001:5001"
-      - "8080:8080"
+      # API + gateway exposed on loopback only for local development.
+      - "127.0.0.1:5001:5001"
+      - "127.0.0.1:8080:8080"
     volumes:
       - ipfs_data:/data/ipfs
 

@@ -11,17 +11,13 @@ export const store = configureStore({
     reports: reportReducer,
     web3: web3Reducer,
   },
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        // Ignore these action types
-        ignoredActions: ['web3/setProvider', 'web3/setContract'],
-        // Ignore these field paths in all actions
-        ignoredActionPaths: ['payload.provider', 'payload.contract'],
-        // Ignore these paths in the state
-        ignoredPaths: ['web3.provider', 'web3.contract'],
-      },
-    }),
+  // SECURITY/CORRECTNESS: the serializability check is intentionally left
+  // ENABLED. Web3 provider/signer/contract instances are non-serializable
+  // objects and must NOT be stored in Redux state (they caused stale
+  // signers, broke time-travel debugging, and previously required disabling
+  // this guard). Keep them in module-scoped refs or React context; only
+  // plain-data snapshots (addresses, chainId, block numbers) belong here.
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware(),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

@@ -1,34 +1,40 @@
-# Build stage
-FROM node:18-alpine as builder
+# syntax=docker/dockerfile:1
+# ---------------------------------------------------------------------------
+# Build stage: full dependencies (incl. dev tooling) -> compiled dist/
+# ---------------------------------------------------------------------------
+FROM node:20.18-alpine3.20 AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm install
+COPY tsconfig*.json ./
+COPY src ./src
+RUN npm run build && npm prune --omit=dev
 
-# Copy source code
-COPY . .
+# ---------------------------------------------------------------------------
+# Runtime stage: production deps + built artifacts only, runs as non-root
+# ---------------------------------------------------------------------------
+FROM node:20.18-alpine3.20 AS runtime
 
-# Build application
-RUN npm run build
-
-# Development stage
-FROM node:18-alpine
-
+ENV NODE_ENV=production
 WORKDIR /app
 
-# Copy package files and install only production dependencies
-COPY package*.json ./
-RUN npm install
+# Never run as root in containers handling financial data.
+USER node
 
-# Copy source code
-COPY . .
+# Production dependencies come from the pruned builder's node_modules;
+# this keeps the layer small and avoids a second network install here.
+COPY --chown=node:node --from=builder /app/node_modules ./node_modules
+COPY --chown=node:node --from=builder /app/dist ./dist
+COPY --chown=node:node package.json ./
 
-# Expose port
 EXPOSE 4000
 
-# Start development server
-CMD ["npm", "run", "start:dev"]
+# Basic liveness check so orchestrators can detect crash loops early.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:4000/health || exit 1
+
+# Start the COMPILED application — not a watch-mode dev server.
+CMD ["node", "dist/main"]

@@ -4,16 +4,15 @@ import { Provider } from 'react-redux';
 import { theme } from './theme';
 import { store } from './store';
 
-// Layout Components
-import Layout from './components/Layout';
-import ProtectedRoute from './components/ProtectedRoute';
-
-// Pages
-import Dashboard from './pages/Dashboard';
-import Login from './pages/Login';
-import Transactions from './pages/Transactions';
-import Reports from './pages/Reports';
-import Settings from './pages/Settings';
+// Placeholder pages until real components exist. Each is intentionally a
+// stub: the previous App.tsx imported Layout/ProtectedRoute/Dashboard/etc.
+// that were never committed to this repository, which broke the build.
+const Placeholder = ({ name }: { name: string }) => (
+  <div style={{ padding: 24 }}>
+    <h1>{name}</h1>
+    <p>This page is not implemented yet.</p>
+  </div>
+);
 
 function App() {
   return (
@@ -22,41 +21,18 @@ function App() {
         <CssBaseline />
         <Router>
           <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route element={<Layout />}>
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/transactions"
-                element={
-                  <ProtectedRoute>
-                    <Transactions />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/reports"
-                element={
-                  <ProtectedRoute>
-                    <Reports />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-            </Route>
+            <Route path="/login" element={<Placeholder name="Login" />} />
+            {/* NOTE: ProtectedRoute (auth guard) does not exist yet; every
+                route below is currently unauthenticated scaffolding. Do not
+                expose real financial data until auth + guards ship with
+                tests. */}
+            <Route path="/" element={<Placeholder name="Dashboard" />} />
+            <Route
+              path="/transactions"
+              element={<Placeholder name="Transactions" />}
+            />
+            <Route path="/reports" element={<Placeholder name="Reports" />} />
+            <Route path="/settings" element={<Placeholder name="Settings" />} />
           </Routes>
         </Router>
       </ThemeProvider>
